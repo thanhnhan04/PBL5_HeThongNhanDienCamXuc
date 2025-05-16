@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Summary</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>Emotion Analysis Summary</h1>
+    
+    <h2>Hài Lòng: {{ satisfaction }}</h2>
+
+    <canvas id="emotionChart" width="400" height="400"></canvas>
+    
+    <script>
+        const ctx = document.getElementById('emotionChart').getContext('2d');
+
+        // Parse emotionPercentages safely
+        var emotionPercentages = JSON.parse('{{ emotion_percentages|tojson|safe if emotion_percentages else "{}" }}');
+        var labels = Object.keys(emotionPercentages); // Lấy các nhãn
+        var data = Object.values(emotionPercentages); // Lấy các giá trị
+
+        if (labels.length > 0 && data.length > 0) {
+            // Thiết lập dữ liệu biểu đồ
+            const chartData = {
+                labels: labels,
+                datasets: [{
+                    label: 'Emotion Percentage',
+                    data: data,
+                    backgroundColor: ['#FF5733', '#33FF57', '#3375FF', '#F1C40F', '#8E44AD', '#E74C3C', '#95A5A6'],
+                    borderColor: '#fff',
+                    borderWidth: 1
+                }]
+            };
+
+            // Khởi tạo biểu đồ
+            new Chart(ctx, {
+                type: 'pie',
+                data: chartData
+            });
+        } else {
+            ctx.font = "16px Arial";
+            ctx.fillText("No data available to display", 50, 50);
+        }
+    </script>
+    
+</body>
+</html>
