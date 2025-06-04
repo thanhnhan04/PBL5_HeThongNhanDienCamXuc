@@ -21,8 +21,11 @@ def test():
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-face_model = load_model('E:/Python/PBL5/models/emotion_cnn_best11.keras')
-# voice_model = load_model('models/emotion_model_voice.h5')
+face_model = load_model('C:/Project/PBL5_HeThongNhanDienCamXuc/emotion_web1/models/emotion_cnn_best11.keras')
+voice_model = load_model('C:/Project/PBL5_HeThongNhanDienCamXuc/emotion_web1/models/audio2_best.keras')
+print("abc")
+print(voice_model.input_shape)
+voice_model.summary()
 
 EMOTIONS = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise']
 
@@ -34,7 +37,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 @app.route('/')
 def index():
-    trip_files = os.listdir('E:/Python/PBL5/emotion_web/data_emotion')
+    trip_files = os.listdir('C:/Project/PBL5_HeThongNhanDienCamXuc/emotion_web1/data_emotion')
     trip_ids = [os.path.splitext(file)[0] for file in trip_files if file.endswith('.csv')]
 
     return render_template('index.html', emotions=latest_emotions, trip_ids=trip_ids)
@@ -76,6 +79,25 @@ def upload_image():
     except Exception as e:
         logging.error(f"Error in /upload_image route: {e}")
         return "Internal Server Error", 500
+# @app.route('/upload_audio', methods=['POST'])   
+# def upload_audio():
+#     if 'file' not in request.files:
+#         return jsonify({'error': 'No file part'}), 400
+
+#     file = request.files['file']
+#     if file.filename == '':
+#         return jsonify({'error': 'No selected file'}), 400
+
+#     # Tạo tên file theo thời gian
+#     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+#     filename = f'audio_{timestamp}.wav'
+#     filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+#     # Lưu file vào thư mục
+#     file.save(filepath)
+#     print(f"Đã lưu file âm thanh vào: {filepath}")
+
+#     return jsonify({'message': 'File received', 'filename': filename}), 200
 
 @app.route('/upload_audio', methods=['POST'])
 def upload_audio():
@@ -84,23 +106,34 @@ def upload_audio():
     file.save(path)
 
     y, sr = librosa.load(path, sr=16000)
-    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-    mfcc = np.mean(mfcc.T, axis=0).reshape(1, -1)
+    # mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+    # mfcc = np.mean(mfcc.T, axis=0).reshape(1, -1)
+    # pred = voice_model.predict(mfcc)
 
     # Dự đoán cảm xúc từ giọng nói
-    # pred = voice_model.predict(mfcc)
-    # emotion = EMOTIONS[np.argmax(pred)]
-    # latest_emotions['voice'] = emotion
+    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
+    mfcc = librosa.util.fix_length(mfcc, size=128, axis=1)  # Đảm bảo có 128 frame (trục thời gian)
+
+    # Resize về 128x128 (kéo giãn nếu cần)
+    mfcc_resized = cv2.resize(mfcc, (128, 128), interpolation=cv2.INTER_LINEAR)
+
+    # Chuẩn hoá và định hình lại
+    mfcc_resized = mfcc_resized.astype("float32") / 255.0
+    mfcc_resized = np.expand_dims(mfcc_resized, axis=-1)  # (128, 128, 1)
+    mfcc_resized = np.expand_dims(mfcc_resized, axis=0)   # (1, 128, 128, 1)
+    pred = voice_model.predict(mfcc_resized)
+    emotion = EMOTIONS[np.argmax(pred)]
+    latest_emotions['voice'] = emotion
     
-    # # Ghi vào file CSV
-    # write_to_csv(latest_emotions['face'] if latest_emotions['face'] else 'Neutral', emotion)
+    # Ghi vào file CSV
+    write_to_csv(latest_emotions['voice'] if latest_emotions['voice'] else 'Neutral', emotion, 'N/A')
     
-    # return jsonify({"emotion": emotion})
+    return jsonify({"emotion": emotion})
 
 @app.route('/summary', methods=['GET', 'POST'])
 def summary():
     try:
-        trip_files = os.listdir('E:/Python/PBL5/emotion_web1/data_emotion')
+        trip_files = os.listdir('C:/Project/PBL5_HeThongNhanDienCamXuc/emotion_web1/data_emotion')
         trip_ids = [os.path.splitext(file)[0] for file in trip_files if file.endswith('.csv')]
 
         trip_id = None
@@ -110,7 +143,8 @@ def summary():
             trip_id = request.args.get('trip_id')
 
         if trip_id:
-            file_path = f'E:/Python/PBL5/emotion_web/data_emotion/{trip_id}.csv'
+            file_path = f'C:/Project/PBL5_HeThongNhanDienCamXuc/emotion_web1/data_emotion/{trip_id}.csv'
+            
             if not os.path.exists(file_path):
                 return render_template('summary.html', trip_ids=trip_ids, emotion_percentages={}, satisfaction="No data available")
 
@@ -180,7 +214,7 @@ def upload_results():
         return "Internal Server Error", 500
 
 def write_to_csv(trip_id, face_emotion, voice_emotion):
-    file_path = f'E:/Python/PBL5/emotion_web/data_emotion/{trip_id}.csv'
+    file_path = f'C:/Project/PBL5_HeThongNhanDienCamXuc/emotion_web1/data_emotion/{trip_id}.csv'
     
     with open(file_path, mode='a', newline='') as file:
         writer = csv.writer(file)

@@ -196,6 +196,14 @@
                     setTimeout(() => {
                         statusDisplay.textContent = "Data collection has completed.";
                         statusDisplay.className = "status-display status-completed";
+                        const select = document.getElementById('trip_id_summary');
+                        const newOption = document.createElement("option");
+                        newOption.value = document.getElementById("trip_id").value;
+                        newOption.text = document.getElementById("trip_id").value;
+                        newOption.selected = true;
+
+                        // Thêm vào select
+                        select.appendChild(newOption);
                     }, duration);
                 } else {
                     // Handle errors
