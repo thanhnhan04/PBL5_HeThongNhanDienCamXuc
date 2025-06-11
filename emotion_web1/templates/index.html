@@ -1,11 +1,10 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Emotion Detection</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -14,7 +13,6 @@
             padding: 0;
             color: #333;
         }
-    
         .container {
             max-width: 720px;
             margin: 50px auto;
@@ -23,23 +21,19 @@
             border-radius: 16px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
         }
-    
         h1, h2 {
             text-align: center;
             color: #2c3e50;
             margin-bottom: 24px;
         }
-    
         form {
             margin-bottom: 32px;
         }
-    
         label {
             font-weight: 600;
             margin-bottom: 8px;
             display: block;
         }
-    
         input[type="text"], input[type="number"], select {
             width: 100%;
             padding: 12px;
@@ -50,12 +44,10 @@
             box-sizing: border-box;
             transition: border-color 0.3s;
         }
-    
         input:focus, select:focus {
             border-color: #3498db;
             outline: none;
         }
-    
         button {
             width: 100%;
             padding: 12px;
@@ -67,11 +59,9 @@
             cursor: pointer;
             transition: background 0.3s;
         }
-    
         button:hover {
             background-color: #2980b9;
         }
-    
         .status-display {
             padding: 16px;
             margin-bottom: 24px;
@@ -80,29 +70,24 @@
             font-weight: 500;
             text-align: center;
         }
-    
         .status-started {
             background-color: #f1c40f;
             color: #fff;
         }
-    
         .status-completed {
             background-color: #2ecc71;
             color: #fff;
         }
-    
         .status-error {
             background-color: #e74c3c;
             color: #fff;
         }
-    
         .summary-section {
             display: flex;
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 20px;
         }
-    
         .summary-card {
             flex: 1;
             min-width: 260px;
@@ -111,102 +96,143 @@
             padding: 20px;
             text-align: center;
         }
-    
         .summary-card h3 {
             margin-bottom: 16px;
             color: #2c3e50;
         }
-    
         .summary-card p {
             font-size: 18px;
             margin: 8px 0;
             font-weight: bold;
         }
+        .csv-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+        }
+        .csv-table th, .csv-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            text-align: center;
+        }
+        .csv-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .csv-table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            margin-top: 24px;
+        }
     </style>
-    
 </head>
 <body>
     <div class="container">
         <h1>Emotion Detection System</h1>
 
-<!-- Start Form -->
-<form id="startForm">
-    <label for="trip_id">Trip ID</label>
-    <input type="text" id="trip_id" name="trip_id" required>
+        <form id="startForm">
+            <label for="trip_id">Trip ID</label>
+            <input type="text" id="trip_id" name="trip_id" required />
 
-    <label for="trip_duration">Trip Duration (minutes)</label>
-    <input type="number" id="trip_duration" name="trip_duration" min="1" required>
+            <label for="trip_duration">Trip Duration (minutes)</label>
+            <input type="number" id="trip_duration" name="trip_duration" min="1" required />
 
-    <button type="submit">Start Data Collection</button>
-</form>
-
-<!-- Status -->
-<div id="statusDisplay" class="status-display" style="display: none;"></div>
-
-<!-- Summary and Emotions -->
-<h2>View Emotion Summary</h2>
-<div class="summary-section">
-    <div class="summary-card">
-        <h3>Select Trip ID</h3>
-        <form action="/summary" method="get">
-            <select id="trip_id_summary" name="trip_id" required>
-                {% for trip_id in trip_ids %}
-                    <option value="{{ trip_id }}">{{ trip_id }}</option>
-                {% endfor %}
-            </select>
-            <button type="submit">View Summary</button>
+            <button type="submit">Start Data Collection</button>
         </form>
+
+        <div id="statusDisplay" class="status-display" style="display: none;"></div>
+
+        <h2>View Emotion Summary</h2>
+        <div class="summary-section">
+            <div class="summary-card">
+                <h3>Select Trip ID</h3>
+                <form action="/summary" method="get">
+                    <select id="trip_id_summary" name="trip_id" required>
+                        {% for trip_id in trip_ids %}
+                        <option value="{{ trip_id }}">{{ trip_id }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit">View Summary</button>
+                </form>
+            </div>
+
+            <div class="summary-card">
+                <h3>Latest Emotions</h3>
+                <p>Face Emotion: <span id="faceEmotion" style="font-weight: bold; color: #e74c3c;">{{ emotions['face'] or 'None' }}</span></p>
+                <p>Voice Emotion: <span id="voiceEmotion" style="font-weight: bold; color: #27ae60;">{{ emotions['voice'] or 'None' }}</span></p>
+                <p>Last Updated: <span id="lastUpdate">Never</span></p>
+                <button onclick="checkAudioDebug()" style="margin-top: 10px; padding: 8px; background-color: #95a5a6;">Check Audio Debug</button>
+                <div id="audioDebugInfo" style="margin-top: 10px; font-size: 12px; color: #7f8c8d;"></div>
+            </div>
+
+            <div class="summary-card">
+                <h3>Monthly Satisfaction Summary</h3>
+                <a href="/monthly_summary">
+                    <button type="button">View Monthly Summary</button>
+                </a>
+            </div>
+        </div>
+
+        <h2>CSV Data Viewer</h2>
+        <div class="csv-table-container">
+            <table id="csvTable" class="csv-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Face Emotion</th>
+                        <th>Voice Emotion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be populated dynamically -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="summary-card">
-        <h3>Latest Emotions</h3>
-        <p>Face Emotion: <span>{{ emotions['face'] }}</span></p>
-        <p>Voice Emotion: <span>{{ emotions['voice'] }}</span></p>
-    </div>
-</div>
-
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script> <!-- Include PapaParse for CSV parsing -->
     <script>
         const form = document.getElementById('startForm');
         const statusDisplay = document.getElementById('statusDisplay');
+        const csvTableBody = document.getElementById('csvTable').querySelector('tbody');
+        const csvTableContainer = document.querySelector('.csv-table-container');
+        const faceEmotionElement = document.getElementById('faceEmotion');
+        const voiceEmotionElement = document.getElementById('voiceEmotion');
+        const lastUpdateElement = document.getElementById('lastUpdate');
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            // Collect form data
             const formData = new FormData(form);
 
-            // Send AJAX request to start data collection
             try {
                 const response = await fetch('/start_collection', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
-                    // Update status to "started"
                     statusDisplay.textContent = "Data collection has started.";
                     statusDisplay.className = "status-display status-started";
                     statusDisplay.style.display = "block";
 
-                    // Simulate completion after the specified duration
                     const duration = parseInt(formData.get('trip_duration')) * 60 * 1000;
                     setTimeout(() => {
                         statusDisplay.textContent = "Data collection has completed.";
                         statusDisplay.className = "status-display status-completed";
+
                         const select = document.getElementById('trip_id_summary');
                         const newOption = document.createElement("option");
                         newOption.value = document.getElementById("trip_id").value;
                         newOption.text = document.getElementById("trip_id").value;
                         newOption.selected = true;
-
-                        // Thêm vào select
                         select.appendChild(newOption);
                     }, duration);
                 } else {
-                    // Handle errors
                     statusDisplay.textContent = result.message || "Failed to start data collection.";
                     statusDisplay.className = "status-display status-error";
                     statusDisplay.style.display = "block";
@@ -218,6 +244,105 @@
                 statusDisplay.style.display = "block";
             }
         });
+
+        let csvUpdateInterval = null;
+        let emotionUpdateInterval = null;
+
+        async function fetchLatestEmotions() {
+            try {
+                const response = await fetch('/get_latest_emotion');
+                if (!response.ok) throw new Error('Failed to fetch latest emotions');
+                const emotions = await response.json();
+
+                console.log('Fetched emotions:', emotions); // Debug log
+
+                faceEmotionElement.textContent = emotions.face || 'None';
+                voiceEmotionElement.textContent = emotions.voice || 'None';
+                lastUpdateElement.textContent = new Date().toLocaleTimeString();
+                
+                // Highlight if voice emotion was detected
+                if (emotions.voice && emotions.voice !== 'None') {
+                    voiceEmotionElement.style.backgroundColor = '#d5f4e6';
+                    setTimeout(() => {
+                        voiceEmotionElement.style.backgroundColor = 'transparent';
+                    }, 2000);
+                }
+            } catch (error) {
+                console.error('Failed to fetch latest emotions:', error);
+            }
+        }
+
+        async function fetchAndUpdateCsvData(tripId) {
+            try {
+                const response = await fetch(`/load_csv?trip_id=${tripId}`);
+                if (!response.ok) throw new Error('Failed to load CSV data');
+                const csvData = await response.json();
+
+                csvTableBody.innerHTML = ''; // Clear existing rows
+                csvData.forEach(row => {
+                    const tableRow = document.createElement('tr');
+                    tableRow.innerHTML = `
+                        <td>${row.timestamp}</td>
+                        <td>${row.face_emotion}</td>
+                        <td>${row.voice_emotion}</td>
+                    `;
+                    csvTableBody.appendChild(tableRow);
+                });
+
+                // Auto-scroll to the bottom for new entries in the CSV table
+                csvTableContainer.scrollTop = csvTableContainer.scrollHeight;
+            } catch (error) {
+                console.error('Error fetching and updating CSV data:', error);
+            }
+        }
+
+        function startPeriodicUpdates(tripId) {
+            // Clear existing intervals
+            if (csvUpdateInterval) clearInterval(csvUpdateInterval);
+            if (emotionUpdateInterval) clearInterval(emotionUpdateInterval);
+
+            // Start new intervals scoped to the selected tripId
+            emotionUpdateInterval = setInterval(fetchLatestEmotions, 2000); // Update every 2 seconds instead of 5
+            csvUpdateInterval = setInterval(() => fetchAndUpdateCsvData(tripId), 3000); // Update every 3 seconds instead of 5
+            
+            // Immediate first update
+            fetchLatestEmotions();
+            fetchAndUpdateCsvData(tripId);
+        }
+
+        document.getElementById('trip_id_summary').addEventListener('change', async (event) => {
+            const tripId = event.target.value;
+            await fetchAndUpdateCsvData(tripId);
+            startPeriodicUpdates(tripId);
+        });
+
+        const initialTripId = document.getElementById('trip_id_summary').value;
+        fetchAndUpdateCsvData(initialTripId);
+        startPeriodicUpdates(initialTripId);
+
+        async function checkAudioDebug() {
+            try {
+                console.log("Checking audio debug...");
+                const response = await fetch('/audio_debug');
+                if (!response.ok) throw new Error('Failed to fetch audio debug info');
+                const data = await response.json();
+                
+                console.log("Audio debug results:", data);
+                
+                const debugInfo = document.getElementById('audioDebugInfo');
+                debugInfo.innerHTML = `
+                    <strong>Audio Debug Info:</strong><br>
+                    Voice Model Loaded: ${data.voice_model_loaded}<br>
+                    Latest Voice Emotion: ${data.latest_voice_emotion || 'None'}<br>
+                    Collection Active: ${data.collection_active}<br>
+                    Current Trip ID: ${data.current_trip_id || 'None'}<br>
+                    Available Emotions: ${data.emotions_list.join(', ')}
+                `;
+            } catch (error) {
+                console.error("Error checking audio debug:", error);
+                document.getElementById('audioDebugInfo').textContent = "Error: " + error.message;
+            }
+        }
     </script>
 </body>
 </html>
