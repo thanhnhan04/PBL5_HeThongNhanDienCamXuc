@@ -3,145 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monthly Satisfaction Summary</title>
+    <title>Satisfaction Statistics</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Roboto', sans-serif;
-            background-color: #f0f2f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: 0;
             padding: 0;
             color: #333;
+            min-height: 100vh;
         }
         .container {
-            max-width: 1200px; /* Increased width for larger chart */
-            margin: 50px auto;
-            padding: 30px;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 15px;
             background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2em;
+            font-weight: 700;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease;
+        }
+        .stat-item:hover {
+            transform: translateY(-2px);
+        }
+        .stat-number {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            font-weight: 500;
         }
         .chart-container {
-            margin-top: 30px;
+            margin-top: 25px;
             text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #e9ecef;
         }
         canvas {
-            width: 100%; /* Ensure the chart takes full width */
-            height: 600px; /* Increased height for larger chart */
-        }
-        .summary-text {
-            margin-top: 20px;
-            font-size: 18px;
-            line-height: 1.6;
-            color: #2c3e50;
-        }
-        .recommendations {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #ecf0f1;
-            border-radius: 12px;
-            font-size: 16px;
-            line-height: 1.6;
+            max-width: 380px;
+            max-height: 380px;
+            margin: 0 auto;
         }
         .back-link {
             display: block;
-            margin-top: 20px;
+            margin-top: 25px;
             text-align: center;
-            font-size: 16px;
+            font-size: 14px;
             color: #3498db;
             text-decoration: none;
+            padding: 10px 20px;
+            background: #ecf0f1;
+            border-radius: 6px;
+            transition: all 0.3s ease;
         }
         .back-link:hover {
-            text-decoration: underline;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
         }
+        .satisfaction-level {
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 5px;
+            margin: 0 3px;
+            display: inline-block;
+            text-transform: capitalize;
+        }
+        .very-satisfied { background-color: #d4edda; color: #155724; }
+        .satisfied { background-color: #cce5ff; color: #004085; }
+        .neutral { background-color: #fff3cd; color: #856404; }
+        .dissatisfied { background-color: #f8d7da; color: #721c24; }
+        .very-dissatisfied { background-color: #f5c6cb; color: #721c24; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Monthly Satisfaction Summary</h1>
-        <div class="chart-container">
-            <canvas id="monthlyChart"></canvas>
+        <h1>Satisfaction Statistics</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">{{ satisfaction_counts.get('Very Satisfied', 0) + satisfaction_counts.get('Satisfied', 0) }}</div>
+                <div class="stat-label">Satisfied Trips</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ satisfaction_counts.get('Neutral', 0) }}</div>
+                <div class="stat-label">Neutral Trips</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ satisfaction_counts.get('Dissatisfied', 0) + satisfaction_counts.get('Very Dissatisfied', 0) }}</div>
+                <div class="stat-label">Dissatisfied Trips</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ all_trips_data|length }}</div>
+                <div class="stat-label">Total Trips</div>
+            </div>
         </div>
-        <div class="summary-text" id="summaryText"></div>
-        <div class="recommendations" id="recommendations"></div>
-        <a href="/" class="back-link">Back to Home</a>
+
+        <div class="chart-container">
+            <h2 style="margin-bottom: 30px; color: #2c3e50;">Satisfaction Level Distribution</h2>
+            <canvas id="satisfactionChart"></canvas>
+        </div>
+
+        <a href="/" class="back-link">← Back to Home</a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const monthlyStats = JSON.parse('{{ monthly_stats | tojson | safe }}');
-        const labels = Object.keys(monthlyStats);
-        const data = Object.values(monthlyStats).map(scores => {
-            const total = scores.reduce((sum, score) => sum + score, 0);
-            return (total / scores.length).toFixed(2);
-        });
+        const satisfactionCounts = JSON.parse('{{ satisfaction_counts | tojson | safe }}');
+        
+   
+        const labels = [];
+        const data = [];
+        const colors = [];
+        
+ 
+        if (satisfactionCounts['Very Satisfied'] > 0) {
+            labels.push('Very Satisfied');
+            data.push(satisfactionCounts['Very Satisfied']);
+            colors.push('#28a745');
+        }
+        
+       
+        if (satisfactionCounts['Satisfied'] > 0) {
+            labels.push('Satisfied');
+            data.push(satisfactionCounts['Satisfied']);
+            colors.push('#17a2b8');
+        }
+        
+ 
+        if (satisfactionCounts['Neutral'] > 0) {
+            labels.push('Neutral');
+            data.push(satisfactionCounts['Neutral']);
+            colors.push('#ffc107');
+        }
+        
 
-        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        if (satisfactionCounts['Dissatisfied'] > 0) {
+            labels.push('Dissatisfied');
+            data.push(satisfactionCounts['Dissatisfied']);
+            colors.push('#fd7e14');
+        }
+        
+        // Add Very Dissatisfied
+        if (satisfactionCounts['Very Dissatisfied'] > 0) {
+            labels.push('Very Dissatisfied');
+            data.push(satisfactionCounts['Very Dissatisfied']);
+            colors.push('#dc3545');
+        }
+
+        const ctx = document.getElementById('satisfactionChart').getContext('2d');
         new Chart(ctx, {
-            type: 'line',
+            type: 'pie',
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Average Satisfaction Score',
                     data: data,
-                    borderColor: '#3498db',
-                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                    borderWidth: 2,
-                    fill: true,
+                    backgroundColor: colors,
+                    borderColor: '#ffffff',
+                    borderWidth: 3,
+                    hoverBorderColor: '#ffffff',
+                    hoverBorderWidth: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'Satisfaction Score'
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const dataset = data.datasets[0];
+                                        const value = dataset.data[i];
+                                        const total = dataset.data.reduce((sum, val) => sum + val, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        
+                                        return {
+                                            text: `${label}: ${value} trips (${percentage}%)`,
+                                            fillStyle: dataset.backgroundColor[i],
+                                            strokeStyle: dataset.borderColor,
+                                            lineWidth: dataset.borderWidth,
+                                            pointStyle: 'circle',
+                                            hidden: false,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
                         }
                     },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'Month'
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed;
+                                const total = context.dataset.data.reduce((sum, val) => sum + val, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return `${label}: ${value} trips (${percentage}%)`;
+                            }
                         }
                     }
                 }
             }
         });
-
-        // Generate summary text
-        const summaryText = document.getElementById('summaryText');
-        const recommendations = document.getElementById('recommendations');
-        const highSatisfactionThreshold = 30;
-        const lowSatisfactionThreshold = -30;
-
-        let satisfiedMonths = 0;
-        let dissatisfiedMonths = 0;
-
-        data.forEach(score => {
-            if (score >= highSatisfactionThreshold) {
-                satisfiedMonths++;
-            } else if (score <= lowSatisfactionThreshold) {
-                dissatisfiedMonths++;
-            }
-        });
-
-        summaryText.innerHTML = `
-            <p>In the analyzed months, ${satisfiedMonths} months had high customer satisfaction, while ${dissatisfiedMonths} months had low satisfaction.</p>
-            <p>Overall, the average satisfaction score across all months is ${data.reduce((sum, score) => sum + parseFloat(score), 0) / data.length}.</p>
-        `;
-
-        recommendations.innerHTML = `
-            <h3>Recommendations for Improvement:</h3>
-            <ul>
-                <li>Focus on improving service quality during months with low satisfaction scores.</li>
-                <li>Analyze customer feedback to identify specific pain points.</li>
-                <li>Consider offering promotions or incentives during months with historically low satisfaction.</li>
-                <li>Enhance staff training to ensure consistent service quality.</li>
-            </ul>
-        `;
     </script>
 </body>
 </html>

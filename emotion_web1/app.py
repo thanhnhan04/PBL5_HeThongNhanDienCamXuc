@@ -12,8 +12,8 @@ from flask_cors import CORS
 import threading
 import matplotlib.pyplot as plt
 from collections import defaultdict
-from typing import Dict, List  # Add this import at the top of the file
-
+from typing import Dict, List 
+import noisereduce as nr
 app = Flask(__name__)
 CORS(app)
 
@@ -37,7 +37,7 @@ def load_csv():
     csv_file_path = f'E:/Python/PBL5/PBL5/emotion_web1/data_emotion/{trip_id}.csv'
     try:
         if not os.path.exists(csv_file_path):
-            return jsonify([])  # Return an empty array if the file doesn't exist
+            return jsonify([]) 
 
         data = []
         with open(csv_file_path, 'r') as file:
@@ -62,7 +62,7 @@ def index():
 @app.route('/upload_image', methods=['POST'])
 def upload_image():
     try:
-        # Check if the trip is still active
+     
         if not collection_details['start']:
             logging.warning("Trip has ended. Rejecting image upload.")
             return "Trip has ended. Data collection is no longer active.", 403
@@ -71,8 +71,6 @@ def upload_image():
         trip_id = request.form['trip_id']
         path = os.path.join(UPLOAD_FOLDER, 'temp.jpg')
         file.save(path)
-
-        # Optimized image processing for faster real-time analysis
         img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
         if img is None:
             return "Invalid image", 400
@@ -82,9 +80,7 @@ def upload_image():
         img = img.astype("float32") / 255.0
         img = np.expand_dims(img, axis=-1) 
         img = np.expand_dims(img, axis=0)   
-
-        # Faster prediction with reduced batch size
-        pred = face_model.predict(img, verbose=0)  # Disable verbose for faster processing
+        pred = face_model.predict(img, verbose=0)  
         confidence = float(np.max(pred)) 
         emotion = EMOTIONS[np.argmax(pred)]
 
@@ -94,7 +90,7 @@ def upload_image():
         latest_emotions['face'] = emotion
         write_to_csv(trip_id, emotion, 'N/A')
 
-        # Clean up temporary file immediately
+    
         try:
             os.remove(path)
         except:
@@ -109,7 +105,6 @@ def upload_image():
 @app.route('/upload_audio', methods=['POST'])
 def upload_audio():
     try:
-        # Check if the trip is still active
         if not collection_details['start']:
             logging.warning("Trip has ended. Rejecting audio upload.")
             return "Trip has ended. Data collection is no longer active.", 403
@@ -119,8 +114,13 @@ def upload_audio():
         file.save(path)
 
         y, sr = librosa.load(path, sr=16000)
-        mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
 
+    
+        noise_sample = y[:int(0.5 * sr)]
+        y_denoised = nr.reduce_noise(y=y, sr=sr, y_noise=noise_sample, prop_decrease=1.0)
+        # ===================================
+
+        mfcc = librosa.feature.mfcc(y=y_denoised, sr=sr, n_mfcc=40)
         target_frames = 94
         if mfcc.shape[1] < target_frames:
             pad_width = target_frames - mfcc.shape[1]
@@ -128,25 +128,29 @@ def upload_audio():
         else:
             mfcc = mfcc[:, :target_frames]
 
+     
         mfcc = (mfcc - np.mean(mfcc)) / (np.std(mfcc) + 1e-9)
         mfcc = np.expand_dims(mfcc, axis=-1)
         mfcc = np.expand_dims(mfcc, axis=0)
 
-        # Faster prediction with reduced batch size
-        pred = voice_model.predict(mfcc, verbose=0)  # Disable verbose for faster processing
+     
+        pred = voice_model.predict(mfcc, verbose=0)
         confidence = float(np.max(pred))
         emotion = EMOTIONS[np.argmax(pred)]
         
-        # Log the audio emotion detection result
-        logging.info(f"[Audio] Detected emotion: {emotion} with confidence: {confidence:.3f}")
+       
+        if confidence < 0.6: 
+            emotion = "Uncertain"
+            logging.info(f"[Audio] Low confidence ({confidence:.3f}), marking as Uncertain")
+        else:
+            logging.info(f"[Audio] Detected emotion: {emotion} with confidence: {confidence:.3f}")
         
         latest_emotions['voice'] = emotion
 
-        # Use the current trip_id from collection_details
         current_trip_id = collection_details['trip_id'] if collection_details['trip_id'] else 'unknown'
         write_to_csv(current_trip_id, 'N/A', emotion)
 
-        # Clean up temporary file immediately
+        # Clean up
         try:
             os.remove(path)
         except:
@@ -157,11 +161,11 @@ def upload_audio():
     except Exception as e:
         logging.error(f"Error in /upload_audio route: {e}")
         return "Internal Server Error", 500
-
+    
 @app.route('/summary', methods=['GET', 'POST'])
 def summary():
     try:
-        # Lấy danh sách file CSV từ thư mục chứa dữ liệu
+  
         trip_files = os.listdir('E:/Python/PBL5/PBL5/emotion_web1/data_emotion')
         trip_ids = [os.path.splitext(file)[0] for file in trip_files if file.endswith('.csv')]
 
@@ -174,50 +178,104 @@ def summary():
         if trip_id:
             file_path = f'E:/Python/PBL5/PBL5/emotion_web1/data_emotion/{trip_id}.csv'
             if not os.path.exists(file_path):
-                return render_template('summary.html', trip_ids=trip_ids, emotion_percentages={}, satisfaction="No data available")
+                return render_template('summary.html', 
+                                     emotion_percentages={}, 
+                                     satisfaction="No data available")
 
-            # Đọc dữ liệu CSV
-            df = pd.read_csv(file_path, names=['timestamp', 'face_emotion', 'voice_emotion'])
+            try:
+              
+                df = pd.read_csv(file_path, names=['timestamp', 'face_emotion', 'voice_emotion'], skiprows=1)
+                
+              
+                df['face_emotion'] = df['face_emotion'].astype(str)
 
-            # Lọc bỏ dòng có cảm xúc không xác định
-            filtered_df = df[df['face_emotion'] != 'Uncertain']
+               
+                if df.empty:
+                    return render_template('summary.html', 
+                                         emotion_percentages={}, 
+                                         satisfaction="File empty")
+           
+                total_records = len(df)  
+                valid_face_records = len(df[df['face_emotion'] != 'Uncertain'])
+                valid_voice_records = len(df[df['voice_emotion'] != 'N/A'])
+                
+              
+                trip_duration = 0
+                if total_records > 1:
+                    try:
+                        start_time = pd.to_datetime(df['timestamp'].iloc[0])
+                        end_time = pd.to_datetime(df['timestamp'].iloc[-1])
+                        trip_duration = (end_time - start_time).total_seconds() / 60 
+                    except Exception as e:
+                        logging.warning(f"Could not parse trip duration: {e}")
+                        trip_duration = 0
 
-            # Tính phần trăm các cảm xúc khuôn mặt
-            face_emotions = filtered_df['face_emotion'].value_counts(normalize=True) * 100
-            emotion_percentages = face_emotions.to_dict()
+           
+                filtered_df = df[df['face_emotion'].notna() & df['face_emotion'].isin(EMOTIONS)]
 
-            # Gán trọng số cho từng loại cảm xúc
-            weights = {
-                'happy': 1.0,
-                'neutral': 0.5,
-                'surprise': 0.0,
-                'sad': -0.5,
-                'fear': -0.7,
-                'disgust': -0.8,
-                'angry': -1.0
-            }
+            
+                if not filtered_df.empty:
+                    face_emotions = filtered_df['face_emotion'].value_counts(normalize=True) * 100
+                    emotion_percentages = face_emotions.to_dict()
+                else:
+                    emotion_percentages = {}
 
-            # Tính điểm hài lòng
-            satisfaction_score = 0
-            for emotion, percent in emotion_percentages.items():
-                weight = weights.get(emotion.lower(), 0)
-                satisfaction_score += percent * weight
+           
+                weights = {
+                    'happy': 1.0,
+                    'neutral': 0.5,
+                    'surprise': 0.2,
+                    'sad': -0.5,
+                    'fear': -0.7,
+                    'disgust': -0.8,
+                    'angry': -1.0
+                }
 
-            # Xác định mức độ hài lòng
-            if satisfaction_score >= 30:
-                satisfaction = "High"
-            elif satisfaction_score <= -30:
-                satisfaction = "Low"
-            else:
-                satisfaction = "Moderate"
+         
+                satisfaction_score = 0
+                total_percent = 0
+                
+                for emotion, percent in emotion_percentages.items():
+                    weight = weights.get(emotion.lower(), 0)
+                    satisfaction_score += percent * weight
+                    total_percent += percent
 
-            logging.debug(f"Emotion Percentages: {emotion_percentages}")
-            logging.debug(f"Satisfaction Score: {satisfaction_score}")
-            logging.debug(f"Satisfaction Level: {satisfaction}")
+           
+                if total_percent > 0:
+                    normalized_score = satisfaction_score / total_percent
+                else:
+                    normalized_score = 0
 
-            return render_template('summary.html', trip_ids=trip_ids, emotion_percentages=emotion_percentages, satisfaction=satisfaction)
+           
+                if normalized_score >= 0.4:
+                    satisfaction = "Very Satisfied"
+                elif normalized_score >= 0.1:
+                    satisfaction = "Satisfied"
+                elif normalized_score >= -0.1:
+                    satisfaction = "Neutral"
+                elif normalized_score >= -0.4:
+                    satisfaction = "Dissatisfied"
+                else:
+                    satisfaction = "Very Dissatisfied"
 
-        return render_template('summary.html', trip_ids=trip_ids, emotion_percentages={}, satisfaction=None)
+                logging.debug(f"Total records (excluding header): {total_records}")
+                logging.debug(f"Emotion Percentages: {emotion_percentages}")
+                logging.debug(f"Satisfaction Score: {normalized_score}")
+                logging.debug(f"Satisfaction Level: {satisfaction}")
+
+                return render_template('summary.html', 
+                                     emotion_percentages=emotion_percentages, 
+                                     satisfaction=satisfaction)
+                                     
+            except Exception as e:
+                logging.error(f"Error processing CSV file {file_path}: {e}")
+                return render_template('summary.html', 
+                                     emotion_percentages={}, 
+                                     satisfaction=f"Error processing data: {str(e)}")
+
+        return render_template('summary.html', 
+                             emotion_percentages={}, 
+                             satisfaction=None)
 
     except Exception as e:
         logging.error(f"Error in /summary route: {e}")
@@ -226,12 +284,12 @@ def summary():
     
 @app.route('/send_audio_signal', methods=['GET'])
 def send_audio_signal():
-    # Ở đây bạn có thể kiểm tra điều kiện nếu cần
-    return jsonify({'send_audio': True})  # hoặc False nếu bạn muốn chặn gửi audio
+ 
+    return jsonify({'send_audio': True})  
 
 @app.route('/get_latest_emotion')
 def get_latest_emotion():
-    # Add debug information
+  
     logging.debug(f"Latest emotions: {latest_emotions}")
     return jsonify(latest_emotions)
 
@@ -239,10 +297,10 @@ def get_latest_emotion():
 def audio_debug():
     """Debug endpoint to check audio processing status"""
     try:
-        # Check if voice model is loaded
+ 
         model_loaded = voice_model is not None
         
-        # Get recent audio processing info
+     
         debug_info = {
             'voice_model_loaded': model_loaded,
             'latest_voice_emotion': latest_emotions.get('voice'),
@@ -263,7 +321,7 @@ def start_collection():
         collection_details['trip_duration'] = int(request.form['trip_duration'])
         collection_details['start'] = True
 
-        # Schedule trip end after the specified duration
+
         duration_seconds = collection_details['trip_duration'] * 60
         threading.Timer(duration_seconds, end_trip).start()
 
@@ -301,11 +359,141 @@ def upload_results():
 def monthly_summary():
     try:
         directory_path = 'E:/Python/PBL5/PBL5/emotion_web1/data_emotion'
-        monthly_stats = read_emotion_data_by_month(directory_path)
-        return render_template('monthly_summary.html', monthly_stats=monthly_stats)
+        all_trips_data = get_all_trip_summaries(directory_path)
+
+
+        satisfaction_counts = defaultdict(int)
+        for trip in all_trips_data:
+            satisfaction_counts[trip['satisfaction']] += 1
+
+        monthly_trends = defaultdict(lambda: defaultdict(list))
+        for trip in all_trips_data:
+            try:
+
+                file_path = os.path.join(directory_path, f"{trip['trip_id']}.csv")
+                if os.path.exists(file_path):
+                    df = pd.read_csv(file_path, names=['timestamp', 'face_emotion', 'voice_emotion'], skiprows=1)
+                    if not df.empty:
+                        first_timestamp_str = df['timestamp'].iloc[0]
+                        dt_object = pd.to_datetime(first_timestamp_str)
+                        month_key = dt_object.strftime('%Y-%m')
+                        monthly_trends[month_key][trip['satisfaction']].append(trip['normalized_score'])
+            except Exception as e:
+                logging.warning(f"Could not determine month for trip {trip['trip_id']}: {e}")
+
+        # Prepare data for template
+        monthly_summary_data = {}
+        for month, sat_levels in sorted(monthly_trends.items()):
+            total_trips_in_month = sum(len(scores) for scores in sat_levels.values())
+            monthly_summary_data[month] = {
+                'total_trips': total_trips_in_month,
+                'satisfaction_breakdown': {level: len(scores) for level, scores in sat_levels.items()}
+            }
+        
+        # Pass all_trips_data for detailed list display
+        return render_template('monthly_summary.html', 
+                               all_trips_data=all_trips_data, 
+                               satisfaction_counts=satisfaction_counts,
+                               monthly_summary_data=monthly_summary_data)
+
     except Exception as e:
         logging.error(f"Error in /monthly_summary route: {e}")
         return "Internal Server Error", 500
+
+@app.route('/test_audio_processing', methods=['GET'])
+def test_audio_processing():
+   
+    try:
+        test_info = {
+            'audio_processing_logic': {
+                'confidence_threshold': 0.6,
+                'uncertain_condition': 'confidence < 0.6',
+                'na_condition': 'no audio data received',
+                'examples': {
+                    'high_confidence': 'happy (confidence: 0.85) -> happy',
+                    'low_confidence': 'angry (confidence: 0.45) -> Uncertain',
+                    'no_audio': 'no audio file -> N/A'
+                }
+            },
+            'current_voice_model': 'audio_emotion_audio5.keras',
+            'emotions_list': EMOTIONS,
+            'latest_voice_emotion': latest_emotions.get('voice'),
+            'collection_active': collection_details['start']
+        }
+        return jsonify(test_info)
+    except Exception as e:
+        logging.error(f"Error in test_audio_processing: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/test_satisfaction_calculation', methods=['GET'])
+def test_satisfaction_calculation():
+    """Test endpoint to demonstrate satisfaction calculation logic"""
+    try:
+        # Example emotion percentages
+        example_emotions = {
+            'happy': 60.0,
+            'neutral': 30.0,
+            'sad': 10.0
+        }
+        
+        # Weights for each emotion
+        weights = {
+            'happy': 1.0,
+            'neutral': 0.5,
+            'surprise': 0.2,
+            'sad': -0.5,
+            'fear': -0.7,
+            'disgust': -0.8,
+            'angry': -1.0
+        }
+        
+        # Calculate satisfaction score
+        satisfaction_score = 0
+        total_percent = 0
+        
+        for emotion, percent in example_emotions.items():
+            weight = weights.get(emotion.lower(), 0)
+            satisfaction_score += percent * weight
+            total_percent += percent
+        
+        # Normalize score
+        if total_percent > 0:
+            normalized_score = satisfaction_score / total_percent
+        else:
+            normalized_score = 0
+        
+        # Determine satisfaction level
+        if normalized_score >= 0.4:
+            satisfaction = "Very Satisfied"
+        elif normalized_score >= 0.1:
+            satisfaction = "Satisfied"
+        elif normalized_score >= -0.1:
+            satisfaction = "Neutral"
+        elif normalized_score >= -0.4:
+            satisfaction = "Dissatisfied"
+        else:
+            satisfaction = "Very Dissatisfied"
+        
+        test_info = {
+            'example_emotions': example_emotions,
+            'weights': weights,
+            'calculation': {
+                'satisfaction_score': satisfaction_score,
+                'total_percent': total_percent,
+                'normalized_score': round(normalized_score, 3),
+                'satisfaction_level': satisfaction
+            },
+            'formula': {
+                'step1': 'satisfaction_score = sum(percent * weight) for each emotion',
+                'step2': 'normalized_score = satisfaction_score / total_percent',
+                'step3': 'determine satisfaction level based on normalized_score'
+            }
+        }
+        
+        return jsonify(test_info)
+    except Exception as e:
+        logging.error(f"Error in test_satisfaction_calculation: {e}")
+        return jsonify({'error': str(e)}), 500
 
 import csv
 import os
@@ -313,15 +501,14 @@ from datetime import datetime
 
 def write_to_csv(trip_id, face_emotion, voice_emotion):
     try:
-        # Tạo thư mục nếu chưa có
+  
         output_dir = "E:/Python/PBL5/PBL5/emotion_web1/data_emotion"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        # Tạo tên file theo trip_id
+    
         filename = os.path.join(output_dir, f'{trip_id}.csv')
 
-        # Tạo file mới nếu chưa có, thêm header
         if not os.path.isfile(filename):
             with open(filename, mode='w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
@@ -349,73 +536,93 @@ def end_trip():
     collection_details['start'] = False
     logging.info("Trip duration has ended. Data collection is now inactive.")
 
-def read_emotion_data_by_month(directory_path: str) -> Dict[str, List[float]]:
-    """
-    Calculate monthly satisfaction scores based on emotion data in CSV files.
-
-    Args:
-        directory_path (str): Path to the directory containing emotion CSV files.
-
-    Returns:
-        Dict[str, List[float]]: A dictionary where keys are months (e.g., '2025-06') and values are lists of satisfaction scores.
-    """
+def calculate_trip_satisfaction(file_path: str) -> Dict[str, any]:
+   
+    trip_id = os.path.splitext(os.path.basename(file_path))[0]
     weights = {
         'happy': 1.0,
         'neutral': 0.5,
-        'surprise': 0.0,
+        'surprise': 0.2,
         'sad': -0.5,
         'fear': -0.7,
         'disgust': -0.8,
         'angry': -1.0
     }
+    
+    try:
+        df = pd.read_csv(file_path, names=['timestamp', 'face_emotion', 'voice_emotion'], skiprows=1)
+        df['face_emotion'] = df['face_emotion'].astype(str)
 
-    monthly_scores = defaultdict(list)
+        if df.empty:
+            return {'trip_id': trip_id, 'satisfaction': "No data", 'normalized_score': None}
 
+        total_records = len(df)
+        valid_face_records = len(df[df['face_emotion'] != 'Uncertain'])
+        valid_voice_records = len(df[df['voice_emotion'] != 'N/A'])
+
+        trip_duration = 0
+        if total_records > 1:
+            try:
+                start_time = pd.to_datetime(df['timestamp'].iloc[0])
+                end_time = pd.to_datetime(df['timestamp'].iloc[-1])
+                trip_duration = (end_time - start_time).total_seconds() / 60
+            except Exception as e:
+                logging.warning(f"Could not parse trip duration for {trip_id}: {e}")
+                trip_duration = 0
+
+        filtered_df = df[df['face_emotion'].notna() & df['face_emotion'].isin(EMOTIONS)]
+        emotion_percentages = {}
+        if not filtered_df.empty:
+            face_emotions = filtered_df['face_emotion'].value_counts(normalize=True) * 100
+            emotion_percentages = face_emotions.to_dict()
+
+        satisfaction_score = 0
+        total_percent = 0
+        for emotion, percent in emotion_percentages.items():
+            weight = weights.get(emotion.lower(), 0)
+            satisfaction_score += percent * weight
+            total_percent += percent
+
+        if total_percent > 0:
+            normalized_score = satisfaction_score / total_percent
+        else:
+            normalized_score = 0
+
+        if normalized_score >= 0.4:
+            satisfaction = "Very Satisfied"
+        elif normalized_score >= 0.1:
+            satisfaction = "Satisfied"
+        elif normalized_score >= -0.1:
+            satisfaction = "Neutral"
+        elif normalized_score >= -0.4:
+            satisfaction = "Dissatisfied"
+        else:
+            satisfaction = "Very Dissatisfied"
+
+        return {
+            'trip_id': trip_id,
+            'total_records': total_records,
+            'valid_face_records': valid_face_records,
+            'valid_voice_records': valid_voice_records,
+            'trip_duration': round(trip_duration, 2),
+            'emotion_percentages': emotion_percentages,
+            'satisfaction': satisfaction,
+            'normalized_score': round(normalized_score, 3)
+        }
+
+    except Exception as e:
+        logging.error(f"Error processing file {file_path}: {e}")
+        return {'trip_id': trip_id, 'satisfaction': "Error", 'normalized_score': None}
+
+def get_all_trip_summaries(directory_path: str) -> List[Dict[str, any]]:
+  
+    all_trip_summaries = []
     for file_name in os.listdir(directory_path):
         if file_name.endswith('.csv'):
             file_path = os.path.join(directory_path, file_name)
-            try:
-                df = pd.read_csv(file_path, names=['timestamp', 'face_emotion', 'voice_emotion'])
-                filtered_df = df[df['face_emotion'] != 'Uncertain']
-                face_emotions = filtered_df['face_emotion']
-
-                satisfaction_score = 0
-                for emotion in face_emotions:
-                    weight = weights.get(emotion.lower(), 0)
-                    satisfaction_score += weight
-
-                if not face_emotions.empty:
-                    average_score = satisfaction_score / len(face_emotions)
-                    month = file_name[:7]  # Extract 'YYYY-MM' from file name
-                    monthly_scores[month].append(average_score)
-            except Exception as e:
-                logging.error(f"Error processing file {file_path}: {e}")
-
-    return monthly_scores
-
-def plot_monthly_satisfaction_chart(monthly_stats: Dict[str, List[float]]):
-    """
-    Plot monthly satisfaction scores using matplotlib.
-
-    Args:
-        monthly_stats (Dict[str, List[float]]): Monthly satisfaction scores.
-    """
-    months = []
-    average_scores = []
-
-    for month, scores in sorted(monthly_stats.items()):
-        months.append(month)
-        average_scores.append(sum(scores) / len(scores))
-
-    plt.figure(figsize=(10, 6))
-    plt.plot(months, average_scores, marker='o', linestyle='-', color='b')
-    plt.title('Monthly Customer Satisfaction Scores')
-    plt.xlabel('Month')
-    plt.ylabel('Average Satisfaction Score')
-    plt.grid(True)
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.show()
+            summary = calculate_trip_satisfaction(file_path)
+            all_trip_summaries.append(summary)
+    return all_trip_summaries
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

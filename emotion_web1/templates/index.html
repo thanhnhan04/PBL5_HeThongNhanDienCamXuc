@@ -3,211 +3,602 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Emotion Detection</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <title>Emotion Detection System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f0f2f5;
+        * {
             margin: 0;
             padding: 0;
-            color: #333;
-        }
-        .container {
-            max-width: 720px;
-            margin: 50px auto;
-            padding: 30px;
-            background: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-        h1, h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 24px;
-        }
-        form {
-            margin-bottom: 32px;
-        }
-        label {
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: block;
-        }
-        input[type="text"], input[type="number"], select {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            font-size: 16px;
             box-sizing: border-box;
-            transition: border-color 0.3s;
         }
-        input:focus, select:focus {
-            border-color: #3498db;
-            outline: none;
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f0f4f8;
+            color: #1a202c;
+            line-height: 1.6;
         }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #3498db;
-            border: none;
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding: 2rem 0;
+            border-bottom: 2px solid #4a90e2;
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            border-radius: 12px;
             color: white;
-            font-size: 16px;
-            border-radius: 10px;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            color: #e6f3ff;
+            font-weight: 400;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.1);
+            border: 1px solid #e1f0ff;
+            height: fit-content;
+        }
+
+        .main-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.1);
+            border: 1px solid #e1f0ff;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #4a90e2;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 50px;
+            height: 2px;
+            background: #4a90e2;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: #4a5568;
+            font-size: 0.875rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            background: white;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.2s ease;
         }
-        button:hover {
-            background-color: #2980b9;
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
         }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #357abd 0%, #2c5aa0 100%);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+            transform: translateY(-1px);
+        }
+
         .status-display {
-            padding: 16px;
-            margin-bottom: 24px;
-            border-radius: 10px;
-            font-size: 16px;
+            padding: 0.75rem;
+            border-radius: 8px;
             font-weight: 500;
             text-align: center;
+            margin-bottom: 1.25rem;
+            font-size: 0.875rem;
+            display: none;
         }
+
         .status-started {
-            background-color: #f1c40f;
-            color: #fff;
+            background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%);
+            color: #c05621;
+            border: 1px solid #f6ad55;
         }
+
         .status-completed {
-            background-color: #2ecc71;
-            color: #fff;
+            background: linear-gradient(135deg, #f0fff4 0%, #9ae6b4 100%);
+            color: #22543d;
+            border: 1px solid #68d391;
         }
+
         .status-error {
-            background-color: #e74c3c;
-            color: #fff;
+            background: linear-gradient(135deg, #fed7d7 0%, #feb2b2 100%);
+            color: #c53030;
+            border: 1px solid #fc8181;
         }
-        .summary-section {
+
+        .emotion-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .emotion-card {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.25rem;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .emotion-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+        }
+
+        .emotion-card h3 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 0.75rem;
+        }
+
+        .emotion-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .emotion-detected {
+            background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%);
+            color: #234e52;
+            border: 1px solid #81e6d9;
+        }
+
+        .emotion-none {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            color: #a0aec0;
+            border: 1px solid #e2e8f0;
+        }
+
+        .last-update {
+            font-size: 0.75rem;
+            color: #718096;
+        }
+
+        .data-section {
+            margin-top: 2rem;
+        }
+
+        .data-header {
             display: flex;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 20px;
+            align-items: center;
+            margin-bottom: 1rem;
         }
-        .summary-card {
-            flex: 1;
-            min-width: 260px;
-            background: #ecf0f1;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
+
+        .data-count {
+            font-size: 0.875rem;
+            color: #4a90e2;
+            font-weight: 500;
         }
-        .summary-card h3 {
-            margin-bottom: 16px;
-            color: #2c3e50;
-        }
-        .summary-card p {
-            font-size: 18px;
-            margin: 8px 0;
-            font-weight: bold;
-        }
-        .csv-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 24px;
-        }
-        .csv-table th, .csv-table td {
-            border: 1px solid #dee2e6;
-            padding: 8px;
-            text-align: center;
-        }
-        .csv-table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        .csv-table-container {
+
+        .data-table {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
             max-height: 400px;
             overflow-y: auto;
-            border: 1px solid #dee2e6;
-            border-radius: 10px;
-            margin-top: 24px;
+            box-shadow: 0 2px 8px rgba(74, 144, 226, 0.1);
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 0.75rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+            text-align: left;
+            border-bottom: 1px solid #357abd;
+            position: sticky;
+            top: 0;
+        }
+
+        .data-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f7fafc;
+            font-size: 0.875rem;
+        }
+
+        .data-table tr:hover {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .debug-info {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #4a5568;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #4a90e2;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 4px 12px rgba(74, 144, 226, 0.15);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            font-size: 0.875rem;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-success {
+            border-left: 3px solid #48bb78;
+        }
+
+        .notification-error {
+            border-left: 3px solid #f56565;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .select-wrapper select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+        }
+
+        .select-wrapper::after {
+            content: '▼';
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #4a90e2;
+            pointer-events: none;
+            font-size: 0.75rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .emotion-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .icon {
+            margin-right: 0.5rem;
+            color: #4a90e2;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            box-shadow: 0 0 0 2px rgba(72, 187, 120, 0.2);
+        }
+
+        .status-inactive {
+            background: linear-gradient(135deg, #a0aec0 0%, #718096 100%);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Emotion Detection System</h1>
-
-        <form id="startForm">
-            <label for="trip_id">Trip ID</label>
-            <input type="text" id="trip_id" name="trip_id" required />
-
-            <label for="trip_duration">Trip Duration (minutes)</label>
-            <input type="number" id="trip_duration" name="trip_duration" min="1" required />
-
-            <button type="submit">Start Data Collection</button>
-        </form>
-
-        <div id="statusDisplay" class="status-display" style="display: none;"></div>
-
-        <h2>View Emotion Summary</h2>
-        <div class="summary-section">
-            <div class="summary-card">
-                <h3>Select Trip ID</h3>
-                <form action="/summary" method="get">
-                    <select id="trip_id_summary" name="trip_id" required>
-                        {% for trip_id in trip_ids %}
-                        <option value="{{ trip_id }}">{{ trip_id }}</option>
-                        {% endfor %}
-                    </select>
-                    <button type="submit">View Summary</button>
-                </form>
-            </div>
-
-            <div class="summary-card">
-                <h3>Latest Emotions</h3>
-                <p>Face Emotion: <span id="faceEmotion" style="font-weight: bold; color: #e74c3c;">{{ emotions['face'] or 'None' }}</span></p>
-                <p>Voice Emotion: <span id="voiceEmotion" style="font-weight: bold; color: #27ae60;">{{ emotions['voice'] or 'None' }}</span></p>
-                <p>Last Updated: <span id="lastUpdate">Never</span></p>
-                <button onclick="checkAudioDebug()" style="margin-top: 10px; padding: 8px; background-color: #95a5a6;">Check Audio Debug</button>
-                <div id="audioDebugInfo" style="margin-top: 10px; font-size: 12px; color: #7f8c8d;"></div>
-            </div>
-
-            <div class="summary-card">
-                <h3>Monthly Satisfaction Summary</h3>
-                <a href="/monthly_summary">
-                    <button type="button">View Monthly Summary</button>
-                </a>
-            </div>
+        <div class="header">
+            <h1>Emotion Detection System</h1>
+            <p>Real-time emotion recognition and analysis</p>
         </div>
 
-        <h2>CSV Data Viewer</h2>
-        <div class="csv-table-container">
-            <table id="csvTable" class="csv-table">
-                <thead>
-                    <tr>
-                        <th>Timestamp</th>
-                        <th>Face Emotion</th>
-                        <th>Voice Emotion</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Rows will be populated dynamically -->
-                </tbody>
-            </table>
+        <div class="main-content">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <h2 class="section-title">Control Panel</h2>
+
+                <form id="startForm">
+                    <div class="form-group">
+                        <label class="form-label" for="trip_id">Trip ID</label>
+                        <input type="text" id="trip_id" name="trip_id" class="form-input" 
+                               placeholder="Enter trip identifier" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="trip_duration">Duration (minutes)</label>
+                        <input type="number" id="trip_duration" name="trip_duration" 
+                               class="form-input" min="1" placeholder="Enter duration" required />
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        Start Data Collection
+                    </button>
+                </form>
+
+                <div id="statusDisplay" class="status-display"></div>
+
+                <div class="form-group">
+                    <label class="form-label">View Summary</label>
+                    <form action="/summary" method="get">
+                        <div class="select-wrapper">
+                            <select id="trip_id_summary" name="trip_id" required>
+                                {% for trip_id in trip_ids %}
+                                <option value="{{ trip_id }}">{{ trip_id }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-secondary" style="margin-top: 0.75rem;">
+                            View Summary
+                        </button>
+                    </form>
+                </div>
+
+                <div class="form-group">
+                    <a href="/monthly_summary" style="text-decoration: none;">
+                        <button type="button" class="btn btn-success">
+                            Statistical Summary
+                        </button>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Main Panel -->
+            <div class="main-panel">
+                <h2 class="section-title">Real-time Data</h2>
+
+                <div class="emotion-grid">
+                    <div class="emotion-card">
+                        <h3>Face Emotion</h3>
+                        <div id="faceEmotion" class="emotion-value emotion-none">
+                            {{ emotions['face'] or 'None' }}
+                        </div>
+                        <div class="last-update">Waiting for data...</div>
+                    </div>
+
+                    <div class="emotion-card">
+                        <h3>Voice Emotion</h3>
+                        <div id="voiceEmotion" class="emotion-value emotion-none">
+                            {{ emotions['voice'] or 'None' }}
+                        </div>
+                        <div class="last-update">Waiting for data...</div>
+                    </div>
+
+                    <div class="emotion-card">
+                        <h3>System Status</h3>
+                        <div class="status-indicator">
+                            <span class="status-dot status-inactive"></span>
+                            <span id="systemStatus">Inactive</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="audioDebugInfo" class="debug-info" style="display: none;"></div>
+
+                <div class="data-section">
+                    <div class="data-header">
+                        <h3 class="section-title" style="margin-bottom: 0;">Data Log</h3>
+                        <span id="dataCount" class="data-count">0 records</span>
+                    </div>
+
+                    <div class="data-table">
+                        <table id="csvTable">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Face Emotion</th>
+                                    <th>Voice Emotion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script> <!-- Include PapaParse for CSV parsing -->
+    <!-- Notification -->
+    <div id="notification" class="notification"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script>
         const form = document.getElementById('startForm');
         const statusDisplay = document.getElementById('statusDisplay');
         const csvTableBody = document.getElementById('csvTable').querySelector('tbody');
-        const csvTableContainer = document.querySelector('.csv-table-container');
+        const csvTableContainer = document.querySelector('.data-table');
         const faceEmotionElement = document.getElementById('faceEmotion');
         const voiceEmotionElement = document.getElementById('voiceEmotion');
-        const lastUpdateElement = document.getElementById('lastUpdate');
+        const systemStatusElement = document.getElementById('systemStatus');
+        const dataCountElement = document.getElementById('dataCount');
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification notification-${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        function updateEmotionDisplay(element, emotion) {
+            if (emotion && emotion !== 'None') {
+                element.className = 'emotion-value emotion-detected';
+                element.textContent = emotion;
+            } else {
+                element.className = 'emotion-value emotion-none';
+                element.textContent = 'None';
+            }
+        }
+
+        function updateSystemStatus(status, isActive) {
+            const statusDot = document.querySelector('.status-dot');
+            if (isActive) {
+                statusDot.className = 'status-dot status-active';
+                systemStatusElement.textContent = 'Active';
+            } else {
+                statusDot.className = 'status-dot status-inactive';
+                systemStatusElement.textContent = 'Inactive';
+            }
+        }
 
         form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const formData = new FormData(form);
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            const tripId = formData.get('trip_id');
 
             try {
+                submitBtn.innerHTML = '<span class="loading"></span> Starting...';
+                submitBtn.disabled = true;
+
                 const response = await fetch('/start_collection', {
                     method: 'POST',
                     body: formData,
@@ -216,32 +607,65 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    statusDisplay.textContent = "Data collection has started.";
+                    statusDisplay.textContent = "Data collection started successfully";
                     statusDisplay.className = "status-display status-started";
                     statusDisplay.style.display = "block";
+                    
+                    updateSystemStatus('Active', true);
+                    showNotification('Data collection started successfully', 'success');
+
+                    // Update View Summary dropdown with new trip ID
+                    const summarySelect = document.getElementById('trip_id_summary');
+                    
+                    // Check if trip ID already exists in dropdown
+                    let tripExists = false;
+                    for (let i = 0; i < summarySelect.options.length; i++) {
+                        if (summarySelect.options[i].value === tripId) {
+                            tripExists = true;
+                            break;
+                        }
+                    }
+                    
+                    // Add new trip ID if it doesn't exist
+                    if (!tripExists) {
+                        const newOption = document.createElement("option");
+                        newOption.value = tripId;
+                        newOption.text = tripId;
+                        summarySelect.appendChild(newOption);
+                    }
+                    
+                    // Set the new trip as selected
+                    summarySelect.value = tripId;
+                    
+                    // Load CSV data for the new trip
+                    await fetchAndUpdateCsvData(tripId);
+                    startPeriodicUpdates(tripId);
 
                     const duration = parseInt(formData.get('trip_duration')) * 60 * 1000;
                     setTimeout(() => {
-                        statusDisplay.textContent = "Data collection has completed.";
+                        statusDisplay.textContent = "Data collection completed";
                         statusDisplay.className = "status-display status-completed";
-
-                        const select = document.getElementById('trip_id_summary');
-                        const newOption = document.createElement("option");
-                        newOption.value = document.getElementById("trip_id").value;
-                        newOption.text = document.getElementById("trip_id").value;
-                        newOption.selected = true;
-                        select.appendChild(newOption);
+                        
+                        updateSystemStatus('Inactive', false);
+                        showNotification('Data collection completed', 'success');
                     }, duration);
                 } else {
-                    statusDisplay.textContent = result.message || "Failed to start data collection.";
+                    statusDisplay.textContent = result.message || "Failed to start data collection";
                     statusDisplay.className = "status-display status-error";
                     statusDisplay.style.display = "block";
+                    
+                    showNotification(result.message || 'Failed to start data collection', 'error');
                 }
             } catch (error) {
                 console.error("Error starting data collection:", error);
                 statusDisplay.textContent = "An error occurred. Please try again.";
                 statusDisplay.className = "status-display status-error";
                 statusDisplay.style.display = "block";
+                
+                showNotification('An error occurred. Please try again.', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         });
 
@@ -254,19 +678,14 @@
                 if (!response.ok) throw new Error('Failed to fetch latest emotions');
                 const emotions = await response.json();
 
-                console.log('Fetched emotions:', emotions); // Debug log
-
-                faceEmotionElement.textContent = emotions.face || 'None';
-                voiceEmotionElement.textContent = emotions.voice || 'None';
-                lastUpdateElement.textContent = new Date().toLocaleTimeString();
+                updateEmotionDisplay(faceEmotionElement, emotions.face);
+                updateEmotionDisplay(voiceEmotionElement, emotions.voice);
                 
-                // Highlight if voice emotion was detected
-                if (emotions.voice && emotions.voice !== 'None') {
-                    voiceEmotionElement.style.backgroundColor = '#d5f4e6';
-                    setTimeout(() => {
-                        voiceEmotionElement.style.backgroundColor = 'transparent';
-                    }, 2000);
-                }
+                const lastUpdateElements = document.querySelectorAll('.last-update');
+                lastUpdateElements.forEach(el => {
+                    el.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+                });
+                
             } catch (error) {
                 console.error('Failed to fetch latest emotions:', error);
             }
@@ -278,7 +697,7 @@
                 if (!response.ok) throw new Error('Failed to load CSV data');
                 const csvData = await response.json();
 
-                csvTableBody.innerHTML = ''; // Clear existing rows
+                csvTableBody.innerHTML = '';
                 csvData.forEach(row => {
                     const tableRow = document.createElement('tr');
                     tableRow.innerHTML = `
@@ -289,7 +708,7 @@
                     csvTableBody.appendChild(tableRow);
                 });
 
-                // Auto-scroll to the bottom for new entries in the CSV table
+                dataCountElement.textContent = `${csvData.length} records`;
                 csvTableContainer.scrollTop = csvTableContainer.scrollHeight;
             } catch (error) {
                 console.error('Error fetching and updating CSV data:', error);
@@ -297,15 +716,12 @@
         }
 
         function startPeriodicUpdates(tripId) {
-            // Clear existing intervals
             if (csvUpdateInterval) clearInterval(csvUpdateInterval);
             if (emotionUpdateInterval) clearInterval(emotionUpdateInterval);
 
-            // Start new intervals scoped to the selected tripId
-            emotionUpdateInterval = setInterval(fetchLatestEmotions, 2000); // Update every 2 seconds instead of 5
-            csvUpdateInterval = setInterval(() => fetchAndUpdateCsvData(tripId), 3000); // Update every 3 seconds instead of 5
+            emotionUpdateInterval = setInterval(fetchLatestEmotions, 2000);
+            csvUpdateInterval = setInterval(() => fetchAndUpdateCsvData(tripId), 3000);
             
-            // Immediate first update
             fetchLatestEmotions();
             fetchAndUpdateCsvData(tripId);
         }
@@ -322,25 +738,38 @@
 
         async function checkAudioDebug() {
             try {
-                console.log("Checking audio debug...");
+                const debugInfo = document.getElementById('audioDebugInfo');
+                debugInfo.innerHTML = '<span class="loading"></span> Loading debug info...';
+                debugInfo.style.display = 'block';
+
                 const response = await fetch('/audio_debug');
                 if (!response.ok) throw new Error('Failed to fetch audio debug info');
                 const data = await response.json();
                 
-                console.log("Audio debug results:", data);
-                
-                const debugInfo = document.getElementById('audioDebugInfo');
                 debugInfo.innerHTML = `
-                    <strong>Audio Debug Info:</strong><br>
-                    Voice Model Loaded: ${data.voice_model_loaded}<br>
-                    Latest Voice Emotion: ${data.latest_voice_emotion || 'None'}<br>
-                    Collection Active: ${data.collection_active}<br>
-                    Current Trip ID: ${data.current_trip_id || 'None'}<br>
-                    Available Emotions: ${data.emotions_list.join(', ')}
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.875rem;">
+                        <div>
+                            <strong>Model Status:</strong><br>
+                            Voice Model: ${data.voice_model_loaded ? 'Loaded' : 'Not Loaded'}<br>
+                            Collection: ${data.collection_active ? 'Active' : 'Inactive'}
+                        </div>
+                        <div>
+                            <strong>Current Data:</strong><br>
+                            Voice Emotion: ${data.latest_voice_emotion || 'None'}<br>
+                            Trip ID: ${data.current_trip_id || 'None'}
+                        </div>
+                    </div>
+                    <div style="margin-top: 0.5rem; font-size: 0.75rem; color: #718096;">
+                        <strong>Available Emotions:</strong> ${data.emotions_list.join(', ')}
+                    </div>
                 `;
             } catch (error) {
                 console.error("Error checking audio debug:", error);
-                document.getElementById('audioDebugInfo').textContent = "Error: " + error.message;
+                document.getElementById('audioDebugInfo').innerHTML = `
+                    <div style="color: #f56565;">
+                        Error: ${error.message}
+                    </div>
+                `;
             }
         }
     </script>
